@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-export default function Navbar() {
+import { languages } from '../langaugeSymbol'
+export default function Navbar({setLang,lang}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
@@ -29,6 +29,12 @@ export default function Navbar() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleLanguageChange = (e) => {
+    setLang(e.target.value);
+
+    console.log("Selected Language:", e.target.value);
+  };
+
   return (
     <>
       <nav id="nav">
@@ -43,6 +49,20 @@ export default function Navbar() {
         </ul>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          {/* Language Dropdown */}
+          <div className="language-wrapper">
+            <select
+              value={lang}
+              onChange={handleLanguageChange}
+              className="language-dropdown"
+            >
+              {Object.entries(languages).map(([name, code]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             className="theme-toggle"
             onClick={toggleTheme}

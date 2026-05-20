@@ -9,11 +9,37 @@ import Projects from "../app/components/Projects";
 import Contact from "../app/components/Contact";
 import Footer from "../app/components/Footer";
 import Marquee from "../app/components/Marquee";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  useEffect(() => {
+  const [lang, setLang] = useState("en");
+  const [isTranslating, setIsTranslating] = useState(false);
 
+  // Counter tracks how many in-flight translation API calls exist.
+  // Loader shows when counter > 0, hides only when it reaches 0.
+  const pendingCount = useRef(0);
+
+  const onTranslateStart = () => {
+    pendingCount.current += 1;
+    setIsTranslating(true);
+  };
+
+  const onTranslateEnd = () => {
+    pendingCount.current = Math.max(0, pendingCount.current - 1);
+    if (pendingCount.current === 0) {
+      setIsTranslating(false);
+    }
+  };
+
+  // Reset counter whenever language changes so stale decrements
+  // from a previous language switch don't bleed into the new one.
+  const handleLangChange = (newLang) => {
+    pendingCount.current = 0;
+    setIsTranslating(false);
+    setLang(newLang);
+  };
+
+  useEffect(() => {
     // LOADER
     const loader = document.getElementById("loader");
     const loaderNum = document.getElementById("loader-num");
@@ -21,36 +47,27 @@ export default function Home() {
     let count = 0;
 
     const interval = setInterval(() => {
-
       count += Math.floor(Math.random() * 12) + 4;
 
       if (count >= 100) {
-
         count = 100;
-
         clearInterval(interval);
 
         setTimeout(() => {
-
           loader?.classList.add("out");
 
           setTimeout(() => {
-
             if (loader) {
               loader.style.display = "none";
             }
-
             animateStats();
-
           }, 800);
-
         }, 300);
       }
 
       if (loaderNum) {
         loaderNum.textContent = count + "%";
       }
-
     }, 80);
 
     // CURSOR
@@ -63,7 +80,6 @@ export default function Home() {
     let ry = 0;
 
     const handleMouseMove = (e) => {
-
       mx = e.clientX;
       my = e.clientY;
 
@@ -76,7 +92,6 @@ export default function Home() {
     document.addEventListener("mousemove", handleMouseMove);
 
     function animRing() {
-
       rx += (mx - rx) * 0.12;
       ry += (my - ry) * 0.12;
 
@@ -103,7 +118,6 @@ export default function Home() {
 
     // STATS
     function animateStats() {
-
       const targets = [
         { id: "stat1", end: 2, suffix: "+" },
         { id: "stat2", end: 15, suffix: "+" },
@@ -111,14 +125,11 @@ export default function Home() {
       ];
 
       targets.forEach((t) => {
-
         const el = document.getElementById(t.id);
-
         let start = 0;
         const step = t.end / 60;
 
         const anim = setInterval(() => {
-
           start += step;
 
           if (start >= t.end) {
@@ -129,81 +140,72 @@ export default function Home() {
           if (el) {
             el.textContent = Math.floor(start) + t.suffix;
           }
-
         }, 25);
       });
     }
 
     // OBSERVER
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.target) {
+            entry.target.classList?.add("visible");
 
-      entries.forEach((entry) => {
-
-        if (entry.isIntersecting && entry.target) {
-
-          entry.target.classList?.add("visible");
-
-          entry.target
-            ?.querySelectorAll(".skill-fill")
-            ?.forEach((bar) => {
-
+            entry.target?.querySelectorAll(".skill-fill")?.forEach((bar) => {
               if (bar.dataset.width) {
                 bar.style.width = bar.dataset.width + "%";
               }
-
             });
-        }
-      });
-
-    }, { threshold: 0.15 });
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
 
     document
-      .querySelectorAll(
-        ".exp-item, .skill-category, .project-card, .reveal"
-      )
+      .querySelectorAll(".exp-item, .skill-category, .project-card, .reveal")
       .forEach((el) => observer.observe(el));
 
     // CLEANUP
     return () => {
-
       clearInterval(interval);
-
-      document.removeEventListener(
-        "mousemove",
-        handleMouseMove
-      );
-
-      window.removeEventListener(
-        "scroll",
-        handleScroll
-      );
-
+      document.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("scroll", handleScroll);
       observer.disconnect();
     };
-
   }, []);
 
   return (
     <>
+      {isTranslating && (
+        <div className="translate-loader">
+          <div className="translate-spinner"></div>
+          <p>Translating...</p>
+        </div>
+      )}
+
       <div id="loader">
         <div className="loader-text">Nabanita Bora.</div>
-        <div className="loader-bar"><div className="loader-fill"></div></div>
-        <div className="loader-num" id="loader-num">0%</div>
+        <div className="loader-bar">
+          <div className="loader-fill"></div>
+        </div>
+        <div className="loader-num" id="loader-num">
+          0%
+        </div>
       </div>
-
 
       <div className="cursor" id="cursor"></div>
       <div className="cursor-ring" id="cursor-ring"></div>
 
-      <Navbar />
-      <Hero />
+      <Navbar lang={lang} setLang={handleLangChange} />
+      <Hero lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
       <Marquee />
-      <About />
-      <Experience />
-      <Skills />
-      <Projects />
-      <Contact />
-      <Footer />
+      <About lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
+      <Experience lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
+      <Skills lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
+      <Projects lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
+      <Contact lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
+      <Footer lang={lang} onTranslateStart={onTranslateStart} onTranslateEnd={onTranslateEnd} />
     </>
   );
 }
